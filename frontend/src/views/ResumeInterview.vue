@@ -1,103 +1,108 @@
 <template>
-  <div>
-    <div class="mb-6">
-      <h2 class="text-lg font-medium text-gray-700 mb-4">简历模拟面试</h2>
-      <textarea
-        v-model="projectDescription"
-        placeholder="在这里粘贴简历中的项目描述..."
-        class="w-full h-32 p-4 border border-gray-200 rounded-md text-sm resize-none focus:outline-none focus:border-gray-400"
-      ></textarea>
-      <button 
-        @click="generateQuestions"
-        :disabled="generating || !projectDescription.trim()"
-        class="mt-4 px-6 py-2 bg-gray-700 text-white rounded-md text-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+  <div class="max-w-4xl mx-auto">
+    <h2 class="text-lg font-medium text-text mb-4">简历模拟面试</h2>
+
+    <ResumeInput v-model="projectDescription" />
+
+    <div class="flex justify-center mb-6">
+      <button
+        @click="handleGenerate"
+        :disabled="!projectDescription || loading"
+        class="px-6 py-2 bg-accent text-white rounded hover:bg-gray-700 transition disabled:opacity-50"
       >
-        {{ generating ? '生成中...' : '生成面试题' }}
+        生成面试题
       </button>
     </div>
 
-    <div v-if="loading" class="text-center py-8 text-gray-500">
-      加载中...
-    </div>
+    <div v-if="loading" class="text-center py-8 text-accent">生成中...</div>
+    <div v-else-if="error" class="text-center py-8 text-red-500">{{ error }}</div>
 
-    <div v-else-if="questions.length > 0" class="space-y-4">
-      <QuestionCard
-        v-for="q in questions"
-        :key="q.id"
-        :question="q"
-        @favorite="handleFavorite"
-        @delete="handleDelete"
-        @regenerate="handleRegenerate"
-      />
-      
-      <div class="mt-6 flex justify-center">
-        <button 
-          @click="loadFollowup"
-          :disabled="loading"
-          class="px-6 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-100 transition-colors"
-        >
-          下一批
-        </button>
-      </div>
+    <QuestionList
+      v-else-if="questions.length > 0"
+      :questions="questions"
+      :showFavorite="true"
+      :showRegenerate="false"
+      :showDelete="true"
+      @favorite="handleFavorite"
+      @delete="handleDelete"
+    />
+
+    <div v-if="questions.length > 0" class="flex gap-4 justify-center mt-6">
+      <button
+        @click="handleFollowup"
+        class="px-6 py-2 border border-accent text-accent rounded hover:bg-gray-50 transition"
+      >
+        下一批
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { resumeApi } from '../api'
-import QuestionCard from '../components/QuestionCard.vue'
+import ResumeInput from '../components/ResumeInput.vue'
+import QuestionList from '../components/QuestionList.vue'
+import {
+  generateResumeQuestions,
+  generateFollowup,
+  favoriteResumeQuestion,
+  deleteResumeQuestion
+} from '../api'
 
 const projectDescription = ref('')
 const questions = ref([])
-const loading = ref(false)
-const generating = ref(false)
 const resumeId = ref('')
+const loading = ref(false)
+const error = ref('')
 
-const generateQuestions = async () => {
-  generating.value = true
+async function handleGenerate() {
+  loading.value = true
+  error.value = ''
   try {
-    const res = await resumeApi.generateQuestions(projectDescription.value)
+    const res = await generateResumeQuestions(projectDescription.value, 3)
     questions.value = res.data
-    resumeId.value = res.data[0]?.id ? '' : ''
     if (res.data.length > 0) {
-      resumeId.value = 'resume_' + Date.now()
+      resumeId.value = res.data[0].resume_id || ''
     }
   } catch (e) {
+    error.value = '生成问题失败'
     console.error(e)
+  } finally {
+    loading.value = false
   }
-  generating.value = false
 }
 
-const loadFollowup = async () => {
-  if (!resumeId.value) {
-    resumeId.value = 'resume_' + Date.now()
-  }
+async function handleFollowup() {
+  if (!resumeId.value) return
   loading.value = true
+  error.value = ''
   try {
-    const res = await resumeApi.generateFollowup(resumeId.value, projectDescription.value)
+    const res = await generateFollowup(resumeId.value, projectDescription.value, 3)
     questions.value = [...questions.value, ...res.data]
   } catch (e) {
+    error.value = '生成追问失败'
     console.error(e)
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
-const handleFavorite = async (id) => {
+async function handleFavorite(id) {
   try {
-    const q = questions.value.find(x => x.id === id)
+    await favoriteResumeQuestion(id)
+    const q = questions.value.find(q => q.id === id)
     if (q) q.is_favorited = 1
   } catch (e) {
     console.error(e)
   }
 }
 
-const handleDelete = async (id) => {
-  questions.value = questions.value.filter(x => x.id !== id)
-}
-
-const handleRegenerate = async (id) => {
-  const q = questions.value.find(x => x.id === id)
-  if (q) q.answer = '生成的新答案...'
+async function handleDelete(id) {
+  try {
+    await deleteResumeQuestion(id)
+    questions.value = questions.value.filter(q => q.id !== id)
+  } catch (e) {
+    console.error(e)
+  }
 }
 </script>

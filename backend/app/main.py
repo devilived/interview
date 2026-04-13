@@ -1,3 +1,6 @@
+"""
+FastAPI 主入口文件 - Agent 面试题管理系统
+"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import questions, resume
@@ -18,9 +21,11 @@ app.include_router(resume.router)
 
 @app.get("/")
 def root():
+    """根路径返回欢迎信息"""
     return {"message": "Agent 面试题管理系统 API"}
 
 
 @app.get("/health")
 def health():
+    """健康检查端点"""
     return {"status": "ok"}

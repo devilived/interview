@@ -1,63 +1,35 @@
 <template>
-  <div>
-    <div class="mb-6">
-      <h2 class="text-lg font-medium text-gray-700 mb-4">选择分类</h2>
-      <div class="flex gap-4">
-        <label 
-          v-for="cat in categories" 
-          :key="cat"
-          class="flex items-center gap-2 cursor-pointer"
-        >
-          <input 
-            type="radio" 
-            :value="cat" 
-            v-model="selectedCategory"
-            class="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500"
-          >
-          <span class="text-sm text-gray-600">{{ cat }}</span>
-        </label>
-      </div>
-    </div>
+  <div class="max-w-4xl mx-auto">
+    <h2 class="text-lg font-medium text-text mb-4">题库管理</h2>
 
-    <div v-if="loading" class="text-center py-8 text-gray-500">
-      加载中...
-    </div>
+    <CategorySelector v-model="category" />
 
-    <div v-else class="space-y-4">
-      <QuestionCard
-        v-for="q in questions"
-        :key="q.id"
-        :question="q"
-        @favorite="handleFavorite"
-        @delete="handleDelete"
-        @regenerate="handleRegenerate"
-      />
-    </div>
+    <div v-if="loading" class="text-center py-8 text-accent">加载中...</div>
+    <div v-else-if="error" class="text-center py-8 text-red-500">{{ error }}</div>
 
-    <div v-if="questions.length > 0" class="mt-6 flex justify-center gap-4">
-      <button 
+    <QuestionList
+      v-else
+      :questions="questions"
+      :showFavorite="true"
+      :showRegenerate="true"
+      :showDelete="true"
+      @favorite="handleFavorite"
+      @regenerate="handleRegenerate"
+      @delete="handleDelete"
+    />
+
+    <div class="flex gap-4 justify-center mt-6">
+      <button
         @click="loadQuestions"
-        class="px-6 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+        class="px-6 py-2 border border-accent text-accent rounded hover:bg-gray-50 transition"
       >
         下一批
       </button>
-      <button 
-        @click="generateNewQuestions"
-        :disabled="generating"
-        class="px-6 py-2 bg-gray-700 text-white rounded-md text-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+      <button
+        @click="handleGenerate"
+        class="px-6 py-2 bg-accent text-white rounded hover:bg-gray-700 transition"
       >
-        {{ generating ? '生成中...' : '新问题' }}
-      </button>
-    </div>
-
-    <div v-else class="text-center py-8">
-      <p class="text-gray-500 mb-4">暂无问题，请点击"新问题"生成</p>
-      <button 
-        @click="generateNewQuestions"
-        :disabled="generating"
-        class="px-6 py-2 bg-gray-700 text-white rounded-md text-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
-      >
-        {{ generating ? '生成中...' : '生成问题' }}
+        新问题
       </button>
     </div>
   </div>
@@ -65,61 +37,73 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { questionApi } from '../api'
-import QuestionCard from '../components/QuestionCard.vue'
+import CategorySelector from '../components/CategorySelector.vue'
+import QuestionList from '../components/QuestionList.vue'
+import {
+  getQuestions,
+  generateQuestions,
+  favoriteQuestion,
+  deleteQuestion,
+  regenerateAnswer
+} from '../api'
 
-const categories = ['Agent', 'RAG', 'Memory', 'Tool Calling']
-const selectedCategory = ref('Agent')
+const category = ref('Agent')
 const questions = ref([])
 const loading = ref(false)
-const generating = ref(false)
+const error = ref('')
 
-const loadQuestions = async () => {
+async function loadQuestions() {
   loading.value = true
+  error.value = ''
   try {
-    const res = await questionApi.getQuestions(selectedCategory.value)
+    const res = await getQuestions(category.value, 5)
     questions.value = res.data
   } catch (e) {
+    error.value = '加载问题失败'
     console.error(e)
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
-const generateNewQuestions = async () => {
-  generating.value = true
+async function handleGenerate() {
+  loading.value = true
+  error.value = ''
   try {
-    const res = await questionApi.generateQuestions(selectedCategory.value)
+    const res = await generateQuestions(category.value, 5)
     questions.value = res.data
   } catch (e) {
+    error.value = '生成问题失败'
     console.error(e)
+  } finally {
+    loading.value = false
   }
-  generating.value = false
 }
 
-const handleFavorite = async (id) => {
+async function handleFavorite(id) {
   try {
-    await questionApi.favoriteQuestion(id)
-    const q = questions.value.find(x => x.id === id)
+    await favoriteQuestion(id)
+    const q = questions.value.find(q => q.id === id)
     if (q) q.is_favorited = 1
   } catch (e) {
     console.error(e)
   }
 }
 
-const handleDelete = async (id) => {
+async function handleRegenerate(id) {
   try {
-    await questionApi.deleteQuestion(id)
-    questions.value = questions.value.filter(x => x.id !== id)
+    const res = await regenerateAnswer(id, category.value)
+    const q = questions.value.find(q => q.id === id)
+    if (q) q.answer = res.data.answer
   } catch (e) {
     console.error(e)
   }
 }
 
-const handleRegenerate = async (id) => {
+async function handleDelete(id) {
   try {
-    const res = await questionApi.regenerateAnswer(id)
-    const q = questions.value.find(x => x.id === id)
-    if (q) q.answer = res.data.answer
+    await deleteQuestion(id)
+    questions.value = questions.value.filter(q => q.id !== id)
   } catch (e) {
     console.error(e)
   }

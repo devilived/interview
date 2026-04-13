@@ -1,34 +1,35 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-4">
-    <div class="flex justify-between items-start mb-2">
-      <h3 class="text-sm font-medium text-gray-800">{{ question.question }}</h3>
+  <div class="bg-card rounded-lg shadow-sm p-5 mb-4 border border-gray-100">
+    <div class="mb-3">
+      <span class="text-sm text-accent font-medium">Q:</span>
+      <p class="text-text mt-1">{{ question }}</p>
     </div>
-    
-    <div class="text-sm text-gray-600 whitespace-pre-wrap mb-3">{{ question.answer }}</div>
-    
-    <div class="flex gap-2">
-      <template v-if="!question.is_favorited || question.is_favorited === 0">
-        <button 
-          @click="$emit('favorite', question.id)"
-          class="px-3 py-1 text-xs border border-gray-300 rounded text-gray-600 hover:bg-gray-50"
-        >
-          收藏
-        </button>
-      </template>
-      <template v-else>
-        <button 
-          @click="$emit('regenerate', question.id)"
-          class="px-3 py-1 text-xs border border-gray-300 rounded text-gray-600 hover:bg-gray-50"
-        >
-          生成新答案
-        </button>
-        <button 
-          @click="$emit('delete', question.id)"
-          class="px-3 py-1 text-xs border border-gray-300 rounded text-red-500 hover:bg-red-50"
-        >
-          删除
-        </button>
-      </template>
+    <div class="bg-gray-50 rounded-md p-4 mb-3">
+      <span class="text-sm text-accent font-medium">A:</span>
+      <p class="text-text mt-1 text-sm whitespace-pre-wrap">{{ answer }}</p>
+    </div>
+    <div class="flex gap-2 justify-end">
+      <button
+        v-if="showFavorite"
+        @click="$emit('favorite')"
+        class="px-4 py-1.5 text-sm border border-accent text-accent rounded hover:bg-gray-50 transition"
+      >
+        收藏
+      </button>
+      <button
+        v-if="showRegenerate"
+        @click="$emit('regenerate')"
+        class="px-4 py-1.5 text-sm border border-accent-green text-accent-green rounded hover:bg-green-50 transition"
+      >
+        生成新答案
+      </button>
+      <button
+        v-if="showDelete"
+        @click="$emit('delete')"
+        class="px-4 py-1.5 text-sm border border-red-400 text-red-400 rounded hover:bg-red-50 transition"
+      >
+        删除
+      </button>
     </div>
   </div>
 </template>
@@ -36,10 +37,26 @@
 <script setup>
 defineProps({
   question: {
-    type: Object,
+    type: String,
     required: true
+  },
+  answer: {
+    type: String,
+    default: ''
+  },
+  showFavorite: {
+    type: Boolean,
+    default: false
+  },
+  showRegenerate: {
+    type: Boolean,
+    default: false
+  },
+  showDelete: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['favorite', 'delete', 'regenerate'])
+defineEmits(['favorite', 'regenerate', 'delete'])
 </script>

@@ -24,6 +24,7 @@ data/chroma/
 node_modules/
 dist/
 npm-debug.log*
+frontend/package-lock.json
 
 # IDE
 .vscode/
@@ -37,3 +38,6 @@ Thumbs.db
 
 # Backend
 *.log
+
+# Obsidian
+.obsidian/

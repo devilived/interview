@@ -16,6 +16,7 @@
       @favorite="handleFavorite"
       @regenerate="handleRegenerate"
       @delete="handleDelete"
+      @update="handleUpdate"
     />
 
     <div class="flex gap-4 justify-center mt-6">
@@ -36,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import CategorySelector from '../components/CategorySelector.vue'
 import QuestionList from '../components/QuestionList.vue'
 import {
@@ -44,13 +45,18 @@ import {
   generateQuestions,
   favoriteQuestion,
   deleteQuestion,
-  regenerateAnswer
+  regenerateAnswer,
+  updateQuestion
 } from '../api'
 
 const category = ref('Agent')
 const questions = ref([])
 const loading = ref(false)
 const error = ref('')
+
+watch(category, () => {
+  loadQuestions()
+})
 
 async function loadQuestions() {
   loading.value = true
@@ -104,6 +110,19 @@ async function handleDelete(id) {
   try {
     await deleteQuestion(id)
     questions.value = questions.value.filter(q => q.id !== id)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function handleUpdate({ id, question, answer }) {
+  try {
+    await updateQuestion(id, question, answer)
+    const q = questions.value.find(q => q.id === id)
+    if (q) {
+      q.question = question
+      q.answer = answer
+    }
   } catch (e) {
     console.error(e)
   }

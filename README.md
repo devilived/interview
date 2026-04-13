@@ -39,7 +39,7 @@
 
 ```bash
 cd backend
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
 # 创建数据目录
 mkdir -p data/chroma

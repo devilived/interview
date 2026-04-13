@@ -25,6 +25,7 @@
       :showDelete="true"
       @favorite="handleFavorite"
       @delete="handleDelete"
+      @update="handleUpdate"
     />
 
     <div v-if="questions.length > 0" class="flex gap-4 justify-center mt-6">
@@ -46,7 +47,8 @@ import {
   generateResumeQuestions,
   generateFollowup,
   favoriteResumeQuestion,
-  deleteResumeQuestion
+  deleteResumeQuestion,
+  updateResumeQuestion
 } from '../api'
 
 const projectDescription = ref('')
@@ -101,6 +103,19 @@ async function handleDelete(id) {
   try {
     await deleteResumeQuestion(id)
     questions.value = questions.value.filter(q => q.id !== id)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function handleUpdate({ id, question, answer }) {
+  try {
+    await updateResumeQuestion(id, question, answer)
+    const q = questions.value.find(q => q.id === id)
+    if (q) {
+      q.question = question
+      q.answer = answer
+    }
   } catch (e) {
     console.error(e)
   }

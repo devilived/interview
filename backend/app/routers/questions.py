@@ -11,6 +11,7 @@ from ..models import (
     QuestionResponse,
     GenerateRequest,
     UpdateAnswerRequest,
+    UpdateQuestionRequest,
 )
 from ..chains import generate_questions, regenerate_answer
 from ..vector_db import add_question, delete_question, update_question
@@ -174,3 +175,70 @@ def regenerate_question_answer(
     )
 
     return {"status": "success", "answer": new_answer}
+
+
+@router.put("/{question_id}")
+def update_question(
+    question_id: int, db: Session = Depends(get_db)
+):
+    """
+    获取问题详情（用于编辑）
+
+    Args:
+        question_id: 问题ID
+        db: 数据库会话
+
+    Returns:
+        问题详情
+    """
+    question = db.query(Question).filter(Question.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    return {
+        "id": question.id,
+        "category": question.category,
+        "question": question.question,
+        "answer": question.answer,
+        "source": question.source,
+        "is_favorited": question.is_favorited,
+    }
+
+
+@router.put("/{question_id}/update")
+def update_question_content(
+    question_id: int,
+    req: UpdateQuestionRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    更新问题或答案内容
+
+    Args:
+        question_id: 问题ID
+        req: 更新请求，包含 question 和 answer
+        db: 数据库会话
+
+    Returns:
+        更新后的结果
+    """
+    db_question = db.query(Question).filter(Question.id == question_id).first()
+    if not db_question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    if req.question is not None:
+        db_question.question = req.question
+    if req.answer is not None:
+        db_question.answer = req.answer
+
+    db.commit()
+
+    update_question(
+        db_question.id,
+        db_question.question,
+        db_question.answer or "",
+        db_question.category,
+        db_question.source,
+    )
+
+    return {"status": "success", "message": "Question updated"}

@@ -7,9 +7,9 @@ from typing import List
 import uuid
 
 from ..database import get_db, Question, init_db
-from ..models import QuestionResponse, ResumeGenerateRequest
+from ..models import QuestionResponse, ResumeGenerateRequest, UpdateQuestionRequest
 from ..chains import generate_resume_questions
-from ..vector_db import add_question, delete_question
+from ..vector_db import add_question, delete_question, update_question
 
 router = APIRouter(prefix="/api/resume", tags=["resume"])
 
@@ -172,3 +172,42 @@ def delete_resume_question(question_id: int, db: Session = Depends(get_db)):
     delete_question(question_id)
 
     return {"status": "success", "message": "Question deleted"}
+
+
+@router.put("/{question_id}/update")
+def update_resume_question_content(
+    question_id: int,
+    req: UpdateQuestionRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    更新简历面试问题内容
+
+    Args:
+        question_id: 问题ID
+        req: 更新请求，包含 question 和 answer
+        db: 数据库会话
+
+    Returns:
+        更新后的结果
+    """
+    db_question = db.query(Question).filter(Question.id == question_id).first()
+    if not db_question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    if req.question is not None:
+        db_question.question = req.question
+    if req.answer is not None:
+        db_question.answer = req.answer
+
+    db.commit()
+
+    update_question(
+        db_question.id,
+        db_question.question,
+        db_question.answer or "",
+        db_question.category,
+        db_question.source,
+    )
+
+    return {"status": "success", "message": "Question updated"}

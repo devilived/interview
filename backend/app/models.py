@@ -32,6 +32,12 @@ class UpdateAnswerRequest(BaseModel):
     category: str = "Agent"
 
 
+class UpdateQuestionRequest(BaseModel):
+    """更新问题请求模型"""
+    question: Optional[str] = None
+    answer: Optional[str] = None
+
+
 class FavoriteResponse(BaseModel):
     """收藏操作响应模型"""
     status: str

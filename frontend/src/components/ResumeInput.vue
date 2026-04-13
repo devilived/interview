@@ -9,7 +9,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -26,4 +26,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const content = ref(props.modelValue)
 
+watch(content, (newVal) => {
+  emit('update:modelValue', newVal)
+})
 </script>

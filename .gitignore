@@ -40,5 +40,8 @@ Thumbs.db
 # Backend
 *.log
 
+# Temporary directories
+tmp/
+
 # Obsidian
 .obsidian/
